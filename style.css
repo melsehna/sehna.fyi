@@ -179,3 +179,79 @@ footer {
   color: #777;
 }
 
+/* ----------------------------
+   Mobile adjustments
+---------------------------- */
+
+@media (max-width: 700px) {
+
+  main {
+    margin-top: 4rem;
+  }
+
+  /* Navigation */
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  /* Hero */
+  .hero {
+    margin-bottom: 2.5rem;
+  }
+
+  .hero h1 {
+    font-size: 2.1rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .description {
+    font-size: 1rem;
+  }
+
+  .portrait {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 0.6rem;
+  }
+
+  /* Sections */
+  section {
+    margin-bottom: 2.5rem;
+  }
+
+  /* Explore links */
+  .explore ul li {
+    margin: 0.8rem 0;
+  }
+
+  /* Cats */
+  .cat-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .cat {
+    max-width: 260px;
+  }
+
+  .cat-photos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .cat-photos img {
+    height: 90px;
+  }
+
+  /* Footer */
+  .site-footer {
+    margin-top: 3rem;
+    font-size: 0.8rem;
+  }
+}
+
