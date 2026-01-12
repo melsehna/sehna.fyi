@@ -96,3 +96,81 @@ footer {
   padding-top: 1rem;
 }
 
+
+.hero {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.hero h1 {
+  font-size: 2.8rem;
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 1.6rem;
+}
+
+.description {
+  font-size: 1.05rem;
+  color: #333;
+}
+
+
+.portrait {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+  filter: grayscale(10%);
+}
+
+/* ----------------------------
+   Cats gallery
+---------------------------- */
+
+.cats {
+  margin-top: 4rem;
+}
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.cat-grid img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.cat-grid figure {
+  margin: 0;
+  text-align: center;
+}
+
+.cat-grid figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.cat-grid img {
+  transition: transform 0.15s ease;
+}
+
+.cat-grid img:hover {
+  transform: scale(1.02);
+}
+
+.portrait {
+  border: 1px solid #eee;
+}
+
