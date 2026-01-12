@@ -121,14 +121,18 @@ footer {
 }
 
 .portrait {
-  width: 120px;
-  height: 120px;
-  max-width: 120px;
-  max-height: 120px;
+  width: 200px;
+  height: 200px;
+  max-width: 200px;
+  max-height: 200px;
   object-fit: cover;
   border-radius: 50%;
   margin-bottom: 1.5rem;
 }
+
+/* ----------------------------
+   Cats gallery
+---------------------------- */
 
 /* ----------------------------
    Cats gallery
@@ -140,40 +144,38 @@ footer {
 
 .cat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2rem;
   margin-top: 1.5rem;
 }
 
-.cat-grid img {
-  width: 75%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
+.cat {
+  max-width: 220px;
   justify-self: center;
-}
-
-.cat-grid figure {
-  margin: 0;
   text-align: center;
-  max-width: 180px;
-  justify-self: center;
 }
 
-.cat-grid figcaption {
-  margin-top: 0.4rem;
+.cat-photos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.cat-photos img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.cat figcaption {
+  margin-top: 0.6rem;
   font-size: 0.9rem;
   color: #555;
 }
 
-.cat-grid img {
-  transition: transform 0.15s ease;
-}
-
-.cat-grid img:hover {
-  transform: scale(1.02);
-}
-
-.portrait {
-  border: 1px solid #eee;
+.cat-title {
+  font-size: 0.8rem;
+  color: #777;
 }
 
