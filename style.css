@@ -137,9 +137,6 @@ footer {
   margin: 0 auto 0.6rem auto;
 }
 
-/* ----------------------------
-   Cats gallery
----------------------------- */
 
 /* ----------------------------
    Cats gallery
@@ -264,5 +261,14 @@ footer {
     margin-top: 3rem;
     font-size: 0.8rem;
   }
+}
+
+
+/* Projects style */
+
+.project-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
