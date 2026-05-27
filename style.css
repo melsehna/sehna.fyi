@@ -388,6 +388,49 @@ ul { list-style: none; }
 }
 
 /* ============================================================
+   Background illustration (research section)
+   ============================================================ */
+.research-illustration {
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.18;
+  pointer-events: none;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.bacterium-group {
+  animation: bact-swim 7s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes bact-swim {
+  0%   { transform: translate(0px,   0px)  rotate(-3deg); }
+  22%  { transform: translate(12px, -7px)  rotate(3deg);  }
+  48%  { transform: translate(20px,  3px)  rotate(6deg);  }
+  72%  { transform: translate(9px,   9px)  rotate(1deg);  }
+  100% { transform: translate(0px,   0px)  rotate(-3deg); }
+}
+
+.flagella-group {
+  animation: flag-wave 1.0s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: right center;
+}
+
+@keyframes flag-wave {
+  from { transform: rotate(-11deg); }
+  to   { transform: rotate(11deg);  }
+}
+
+@media (max-width: 920px) {
+  .research-illustration { display: none; }
+}
+
+/* ============================================================
    Footer
    ============================================================ */
 .site-footer {

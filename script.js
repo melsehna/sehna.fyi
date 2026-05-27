@@ -3,8 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Typewriter for hero role
   const roleEl = document.getElementById('hero-role');
   if (roleEl) {
-    const accentText = 'Computational µbiologist';
-    const suffix = ' · PhD student, Carnegie Mellon';
+    const accentText = 'Computational µBiologist';
+    const suffix = ' · Resident @ Google X · PhD @ CPCB';
     const full = accentText + suffix;
     let i = 0;
 
