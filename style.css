@@ -198,8 +198,8 @@ ul { list-style: none; }
 }
 
 .hero-portrait {
-  width: 112px;
-  height: 112px;
+  width: 200px;
+  height: 200px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--border-hover);
