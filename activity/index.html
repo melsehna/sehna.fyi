@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>GitHub Activity Skyline</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="3D GitHub contribution skyline — visualise any user's last 90 days of commits.">
+  <style>
+    @font-face {
+      font-family: 'Cabin';
+      src: url('/fonts/Cabin-Regular.ttf') format('truetype');
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Cabin';
+      src: url('/fonts/Cabin-Bold.ttf') format('truetype');
+      font-weight: 700; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Cabin';
+      src: url('/fonts/Cabin-SemiBold.ttf') format('truetype');
+      font-weight: 600; font-style: normal; font-display: swap;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0b0b0b;
+      --surface: #141414;
+      --border:  #1e1e1e;
+      --text:    #e2dfd9;
+      --text-2:  #8a8a8a;
+      --text-3:  #444;
+      --accent:  #6fa86f;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Cabin', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── Toolbar ── */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 0 1.5rem;
+      height: 52px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    #toolbar h1 {
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .home-link {
+      font-size: 0.78rem;
+      color: var(--text-3);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .home-link:hover { color: var(--text-2); border-bottom-color: var(--text-3); }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+
+    .input-prefix {
+      font-size: 0.78rem;
+      color: var(--text-3);
+    }
+
+    #username-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.82rem;
+      padding: 0.32rem 0.65rem;
+      border-radius: 5px;
+      width: 160px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #username-input:focus { border-color: var(--accent); }
+    #username-input::placeholder { color: var(--text-3); }
+
+    #view-btn {
+      background: var(--accent);
+      color: #0b0b0b;
+      border: none;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 0.36rem 0.9rem;
+      border-radius: 5px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.15s;
+    }
+    #view-btn:hover { background: #86c986; }
+
+    /* ── Canvas wrap ── */
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #activity-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ── Overlay ── */
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.9rem;
+      background: var(--bg);
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+    #overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #overlay-msg {
+      font-size: 0.82rem;
+      color: var(--text-2);
+    }
+
+    /* ── Hint ── */
+    #hint {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      color: var(--text-3);
+      pointer-events: none;
+      white-space: nowrap;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Period label ── */
+    #period-label {
+      position: absolute;
+      top: 1rem;
+      left: 1.25rem;
+      font-size: 0.72rem;
+      color: var(--text-3);
+      pointer-events: none;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div id="toolbar">
+    <h1>GitHub Activity Skyline</h1>
+    <a href="/" class="home-link">sehna.fyi</a>
+    <div class="input-group">
+      <span class="input-prefix">github.com /</span>
+      <input id="username-input" type="text" placeholder="username"
+             autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <button id="view-btn">View →</button>
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="activity-canvas"></canvas>
+
+    <div id="overlay">
+      <div class="spinner"></div>
+      <span id="overlay-msg">Loading contributions…</span>
+    </div>
+
+    <div id="period-label"></div>
+    <div id="hint">Drag to rotate &nbsp;&middot;&nbsp; Scroll to zoom</div>
+  </div>
+
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+
+// ── Params ────────────────────────────────────────────────────────────────────
+const params     = new URLSearchParams(location.search);
+const initUser   = params.get('user') || 'melsehna';
+const isEmbed    = params.get('embed') === '1';
+
+if (isEmbed) {
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('hint').style.display = 'none';
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+const input       = document.getElementById('username-input');
+const viewBtn     = document.getElementById('view-btn');
+const overlay     = document.getElementById('overlay');
+const overlayMsg  = document.getElementById('overlay-msg');
+const periodLabel = document.getElementById('period-label');
+const canvas      = document.getElementById('activity-canvas');
+
+input.value = initUser;
+
+// ── Renderer ──────────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x0b0b0b);
+
+const scene = new THREE.Scene();
+
+// ── Camera ────────────────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+camera.position.set(22, 18, 18);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping   = true;
+controls.dampingFactor   = 0.07;
+controls.autoRotate      = true;
+controls.autoRotateSpeed = 0.45;
+controls.maxPolarAngle   = Math.PI / 2.1;
+controls.minDistance     = 5;
+controls.maxDistance     = 80;
+controls.target.set(7, 0, 3.5);
+
+renderer.domElement.addEventListener('pointerdown', () => {
+  controls.autoRotate = false;
+});
+
+// ── Lights ────────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0xffffff, 0.32));
+
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+sun.position.set(16, 24, 14);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near   = 1;
+sun.shadow.camera.far    = 100;
+sun.shadow.camera.left   = -20;
+sun.shadow.camera.right  = 30;
+sun.shadow.camera.top    = 20;
+sun.shadow.camera.bottom = -10;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0x6fa86f, 0.22);
+fill.position.set(-14, 10, -8);
+scene.add(fill);
+
+// ── Colour map ────────────────────────────────────────────────────────────────
+function commitColor(count) {
+  if (count === 0)  return '#1a1a1a';
+  if (count <= 2)   return '#1e3a1e';
+  if (count <= 5)   return '#2d5a2d';
+  if (count <= 9)   return '#4a8a4a';
+  return '#6fa86f';
+}
+
+// ── Scene build ───────────────────────────────────────────────────────────────
+const GAP   = 1.15;
+const MAX_H = 6.5;
+let barGroup = null;
+
+function buildScene(days) {
+  if (barGroup) {
+    barGroup.traverse(o => {
+      if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); }
+    });
+    scene.remove(barGroup);
+  }
+  barGroup = new THREE.Group();
+
+  const cols     = Math.ceil(days.length / 7);
+  const maxCount = Math.max(...days.map(d => d.count), 1);
+
+  // Floor
+  const floorGeo = new THREE.PlaneGeometry(GAP * (cols + 1), GAP * 8);
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f0f0f, roughness: 0.9 });
+  const floor    = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set((GAP * (cols - 1)) / 2, -0.02, (GAP * 6) / 2);
+  floor.receiveShadow = true;
+  barGroup.add(floor);
+
+  // Reuse materials per colour bucket
+  const matCache = {};
+  function getMat(count) {
+    const hex = commitColor(count);
+    if (!matCache[hex]) {
+      matCache[hex] = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(hex),
+        roughness: 0.42,
+        metalness: 0.06,
+      });
+    }
+    return matCache[hex];
+  }
+
+  days.forEach((day, i) => {
+    const col = Math.floor(i / 7);
+    const row = i % 7;
+    const h   = day.count === 0
+      ? 0.06
+      : Math.max(0.2, (day.count / maxCount) * MAX_H);
+
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.88, h, 0.88),
+      getMat(day.count)
+    );
+    mesh.position.set(col * GAP, h / 2, row * GAP);
+    mesh.castShadow    = true;
+    mesh.receiveShadow = true;
+    barGroup.add(mesh);
+  });
+
+  scene.add(barGroup);
+
+  // Reframe camera
+  const cx = ((cols - 1) * GAP) / 2;
+  const cz = (6 * GAP) / 2;
+  controls.target.set(cx, 0, cz);
+  camera.position.set(cx + 20, 17, cz + 17);
+  controls.autoRotate = true;
+  controls.update();
+}
+
+// ── Fetch ─────────────────────────────────────────────────────────────────────
+async function load(username) {
+  overlay.style.opacity  = '1';
+  overlay.style.pointerEvents = 'auto';
+  overlay.classList.remove('hidden');
+  overlayMsg.textContent = `Loading @${username}…`;
+  document.querySelector('.spinner').style.display = '';
+
+  try {
+    const res = await fetch(
+      `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=last`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const all  = data.contributions || [];
+    const days = all.slice(-90);
+    if (!days.length) throw new Error('No contribution data found.');
+
+    buildScene(days);
+
+    // Period label
+    if (days.length) {
+      const fmt = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      periodLabel.textContent =
+        `@${username} · ${fmt(days[0].date)} – ${fmt(days[days.length - 1].date)}`;
+    }
+
+    // Shareable URL
+    if (!isEmbed) {
+      const url = new URL(location.href);
+      url.searchParams.set('user', username);
+      history.replaceState(null, '', url);
+    }
+
+    overlay.classList.add('hidden');
+
+  } catch (err) {
+    document.querySelector('.spinner').style.display = 'none';
+    overlayMsg.textContent = `Could not load @${username} — ${err.message}`;
+  }
+}
+
+// ── UI events ─────────────────────────────────────────────────────────────────
+viewBtn.addEventListener('click', () => {
+  const u = input.value.trim();
+  if (u) load(u);
+});
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { const u = input.value.trim(); if (u) load(u); }
+});
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+function onResize() {
+  const wrap = canvas.parentElement;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+}
+window.addEventListener('resize', onResize);
+onResize();
+
+// ── Loop ──────────────────────────────────────────────────────────────────────
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+load(initUser);
+</script>
+</body>
+</html>
