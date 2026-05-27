@@ -185,17 +185,12 @@ ul { list-style: none; }
 .hero-meta a {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
   border: none;
+  color: var(--text-2);
   transition: color var(--transition);
 }
 
 .hero-meta a:hover { color: var(--text); }
-
-.hero-meta .dot {
-  color: var(--text-3);
-  user-select: none;
-}
 
 .hero-portrait {
   width: 200px;
