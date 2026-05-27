@@ -360,33 +360,58 @@ function buildScene(days) {
   controls.update();
 }
 
-// ── Fetch ─────────────────────────────────────────────────────────────────────
+// ── Fetch (GitHub REST API — no auth needed for public data) ──────────────────
+async function fetchDays(username) {
+  const commitsByDay = {};
+
+  // GitHub caps public event history at ~300 events across 3 pages
+  for (let page = 1; page <= 3; page++) {
+    const res = await fetch(
+      `https://api.github.com/users/${encodeURIComponent(username)}/events/public?per_page=100&page=${page}`,
+      { headers: { Accept: 'application/vnd.github+json' } }
+    );
+    if (res.status === 404) throw new Error('User not found.');
+    if (res.status === 403) throw new Error('GitHub rate limit hit — try again in a minute.');
+    if (!res.ok) throw new Error(`GitHub API error (${res.status}).`);
+
+    const events = await res.json();
+    events.forEach(ev => {
+      if (ev.type !== 'PushEvent') return;
+      const date  = ev.created_at.slice(0, 10);          // YYYY-MM-DD
+      const count = ev.payload.size ?? ev.payload.commits?.length ?? 0;
+      commitsByDay[date] = (commitsByDay[date] || 0) + count;
+    });
+
+    if (events.length < 100) break; // no more pages
+  }
+
+  // Build a full 90-day array (oldest → newest)
+  const days = [];
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    days.push({ date: dateStr, count: commitsByDay[dateStr] || 0 });
+  }
+  return days;
+}
+
 async function load(username) {
-  overlay.style.opacity  = '1';
+  overlay.style.opacity = '1';
   overlay.style.pointerEvents = 'auto';
   overlay.classList.remove('hidden');
   overlayMsg.textContent = `Loading @${username}…`;
   document.querySelector('.spinner').style.display = '';
 
   try {
-    const res = await fetch(
-      `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=last`
-    );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    const all  = data.contributions || [];
-    const days = all.slice(-90);
-    if (!days.length) throw new Error('No contribution data found.');
+    const days = await fetchDays(username);
 
     buildScene(days);
 
     // Period label
-    if (days.length) {
-      const fmt = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      periodLabel.textContent =
-        `@${username} · ${fmt(days[0].date)} – ${fmt(days[days.length - 1].date)}`;
-    }
+    const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    periodLabel.textContent =
+      `@${username} · ${fmt(days[0].date)} – ${fmt(days[days.length - 1].date)}`;
 
     // Shareable URL
     if (!isEmbed) {
