@@ -429,15 +429,22 @@ ul { list-style: none; }
 /* ============================================================
    Background illustration (research section)
    ============================================================ */
+.research-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 3rem;
+}
+
 .research-illustration {
-  position: absolute;
-  right: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.18;
-  pointer-events: none;
   width: 220px;
   flex-shrink: 0;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.research-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .bacterium-group {
@@ -465,7 +472,8 @@ ul { list-style: none; }
   to   { transform: rotate(11deg);  }
 }
 
-@media (max-width: 920px) {
+@media (max-width: 700px) {
+  .research-layout { display: block; }
   .research-illustration { display: none; }
 }
 
