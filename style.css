@@ -138,6 +138,32 @@ ul { list-style: none; }
 .nav-links a:hover { color: var(--text); }
 
 /* ============================================================
+   Load animations
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.hero-name     { animation: fadeUp 0.55s ease 0.05s both; }
+.hero-bio      { animation: fadeUp 0.55s ease 0.35s both; }
+.hero-meta     { animation: fadeUp 0.55s ease 0.5s  both; }
+.hero-portrait { animation: fadeUp 0.55s ease 0.1s  both; }
+
+/* ============================================================
+   Scroll reveal
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ============================================================
    Hero
    ============================================================ */
 .hero {
@@ -328,22 +354,24 @@ ul { list-style: none; }
 .cat-figure { text-align: left; }
 
 .cat-photos {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
+  position: relative;
   width: 196px;
+  height: 196px;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .cat-photos img {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: 96px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 4px;
-  filter: grayscale(20%);
-  transition: filter var(--transition);
+  opacity: 0;
+  transition: opacity 0.9s ease;
 }
 
-.cat-photos img:hover { filter: grayscale(0%); }
+.cat-photos img.active { opacity: 1; }
 
 .cat-caption {
   margin-top: 0.6rem;
@@ -513,7 +541,7 @@ ul { list-style: none; }
     gap: 2rem;
   }
 
-  .cat-photos { width: 100%; }
+  .cat-photos { width: 100%; height: 220px; }
 
   .cv-entry {
     grid-template-columns: 1fr;
