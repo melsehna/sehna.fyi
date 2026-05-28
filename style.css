@@ -229,11 +229,14 @@ ul { list-style: none; }
 }
 
 /* ============================================================
-   Section blocks
+   Section blocks (cards)
    ============================================================ */
 .block {
-  border-top: 1px solid var(--border);
-  padding: 3rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2rem;
+  margin-bottom: 1rem;
 }
 
 .block-label {
