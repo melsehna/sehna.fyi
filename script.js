@@ -34,6 +34,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
+  // Block highlight: accent border when block is in the center of the viewport
+  const blockObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      entry.target.classList.toggle('in-view', entry.isIntersecting);
+    });
+  }, { rootMargin: '-18% 0px -18% 0px', threshold: 0 });
+
+  document.querySelectorAll('.block').forEach(el => blockObserver.observe(el));
+
   // Cat carousel
   document.querySelectorAll('.cat-photos').forEach(gallery => {
     const imgs = Array.from(gallery.querySelectorAll('img'));
