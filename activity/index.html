@@ -231,6 +231,8 @@ class Isometric2DVisualizer {
     this.hoveredItem = null;
     this.renderedItems = [];
 
+    this.shootingStars = [];
+
     this.resizeListener    = this.onResize.bind(this);
     this.mouseDownListener = this.onMouseDown.bind(this);
     this.mouseMoveListener = this.onMouseMove.bind(this);
@@ -347,6 +349,7 @@ class Isometric2DVisualizer {
     const width  = this.canvas.width  / (window.devicePixelRatio || 1);
     const height = this.canvas.height / (window.devicePixelRatio || 1);
     const ctx = this.ctx;
+    this._t = performance.now() / 1000;
 
     ctx.clearRect(0, 0, width, height);
 
@@ -357,16 +360,49 @@ class Isometric2DVisualizer {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // Deterministic stars
+    // Twinkling stars — each star has a unique speed and phase
     ctx.fillStyle = '#ffffff';
     for (let i = 0; i < 60; i++) {
       const sx   = Math.abs(Math.sin(i * 123.45)) * width;
       const sy   = Math.abs(Math.cos(i * 987.65)) * (height * 0.7);
       const size = Math.abs(Math.sin(i * 50)) * 1.2 + 0.2;
-      ctx.globalAlpha = Math.abs(Math.sin(i * 5)) * 0.6 + 0.2;
+      const base = Math.abs(Math.sin(i * 5)) * 0.6 + 0.2;
+      const twinkle = 0.6 + 0.4 * Math.sin(this._t * (0.3 + (i % 7) * 0.14) + i * 2.1);
+      ctx.globalAlpha = base * twinkle;
       ctx.fillRect(sx, sy, size, size);
     }
     ctx.globalAlpha = 1.0;
+
+    // Shooting stars
+    if (Math.random() < 0.0015) {
+      const angle = Math.PI / 7 + Math.random() * Math.PI / 5;
+      const speed = 4 + Math.random() * 7;
+      this.shootingStars.push({
+        x: Math.random() * width * 0.75,
+        y: Math.random() * height * 0.38,
+        dx: Math.cos(angle) * speed,
+        dy: Math.sin(angle) * speed,
+        tailLen: 40 + Math.random() * 65,
+        alpha: 0.85 + Math.random() * 0.15,
+        decay: 0.016 + Math.random() * 0.014
+      });
+    }
+    for (let k = this.shootingStars.length - 1; k >= 0; k--) {
+      const ss = this.shootingStars[k];
+      const ang = Math.atan2(ss.dy, ss.dx);
+      const tx = ss.x - Math.cos(ang) * ss.tailLen;
+      const ty = ss.y - Math.sin(ang) * ss.tailLen;
+      const grad2 = ctx.createLinearGradient(ss.x, ss.y, tx, ty);
+      grad2.addColorStop(0, `rgba(255,255,255,${ss.alpha.toFixed(2)})`);
+      grad2.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = grad2;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(ss.x, ss.y); ctx.lineTo(tx, ty); ctx.stroke();
+      ss.x += ss.dx; ss.y += ss.dy; ss.alpha -= ss.decay;
+      if (ss.alpha <= 0 || ss.x > width + 120 || ss.y > height + 120) {
+        this.shootingStars.splice(k, 1);
+      }
+    }
 
     const history = this.calendar.history || {};
     const today = new Date(); today.setHours(0,0,0,0);
@@ -429,8 +465,8 @@ class Isometric2DVisualizer {
       let poly;
       if (item.hasActivity) {
         if      (item.commits <= 2) poly = this.drawIsoHouse(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, true, isSelected);
-        else if (item.commits <= 5) poly = this.drawIsoComplex(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, true, isSelected);
-        else                        poly = this.drawIsoBlock(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, true, isSelected);
+        else if (item.commits <= 5) poly = this.drawIsoComplex(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, true, isSelected, item.dateStr);
+        else                        poly = this.drawIsoBlock(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, true, isSelected, item.dateStr);
       } else {
         poly = this.drawIsoBlock(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, false, isSelected);
       }
@@ -439,7 +475,7 @@ class Isometric2DVisualizer {
     });
   }
 
-  drawIsoBlock(ctx, bx, by, size, h, colorHex, hasActivity, isSelected = false) {
+  drawIsoBlock(ctx, bx, by, size, h, colorHex, hasActivity, isSelected = false, dateStr = '') {
     const s = size / 2;
     const offsets3d = [
       { x: 0, z: -s }, { x: s, z: 0 }, { x: 0, z: s }, { x: -s, z: 0 }
@@ -479,17 +515,25 @@ class Isometric2DVisualizer {
     ctx.closePath(); ctx.fill();
 
     if (hasActivity && h > 20) {
-      ctx.fillStyle = '#ffeb3b';
-      ctx.globalAlpha = 0.85;
+      const t = this._t || 0;
+      const dHash = dateStr ? dateStr.split('').reduce((a, c, i) => a + c.charCodeAt(0) * (i + 1), 0) : 0;
       const numRowsWin = Math.min(6, Math.floor(h / 12));
       for (let r = 0; r < numRowsWin; r++) {
         const ty = 0.2 + (r / numRowsWin) * 0.6;
         for (let c = 0; c < 2; c++) {
           const tx = 0.25 + (c / 2) * 0.5;
-          const pL = interpolateFacePoint(topCorners[fi], topCorners[li], baseCorners[fi], tx, ty);
-          ctx.fillRect(pL.x - 0.7, pL.y - 0.7, 1.4, 1.4);
-          const pR = interpolateFacePoint(topCorners[fi], topCorners[ri], baseCorners[fi], tx, ty);
-          ctx.fillRect(pR.x - 0.7, pR.y - 0.7, 1.4, 1.4);
+          const lHash = (dHash + r * 17 + c * 31) % 1000;
+          if (Math.sin(t * 0.35 + lHash) > -0.92) {
+            const pL = interpolateFacePoint(topCorners[fi], topCorners[li], baseCorners[fi], tx, ty);
+            ctx.fillStyle = '#ffeb3b'; ctx.globalAlpha = 0.85;
+            ctx.fillRect(pL.x - 0.7, pL.y - 0.7, 1.4, 1.4);
+          }
+          const rHash = (dHash + r * 17 + c * 31 + 500) % 1000;
+          if (Math.sin(t * 0.35 + rHash) > -0.92) {
+            const pR = interpolateFacePoint(topCorners[fi], topCorners[ri], baseCorners[fi], tx, ty);
+            ctx.fillStyle = '#ffeb3b'; ctx.globalAlpha = 0.85;
+            ctx.fillRect(pR.x - 0.7, pR.y - 0.7, 1.4, 1.4);
+          }
         }
       }
       ctx.globalAlpha = 1.0;
@@ -512,10 +556,10 @@ class Isometric2DVisualizer {
     return poly;
   }
 
-  drawIsoComplex(ctx, bx, by, size, h, colorHex, hasActivity, isSelected = false) {
+  drawIsoComplex(ctx, bx, by, size, h, colorHex, hasActivity, isSelected = false, dateStr = '') {
     const cosPitch = Math.cos(this.pitch);
-    const base = this.drawIsoBlock(ctx, bx, by, size * 0.9, h * 0.7, colorHex, hasActivity, isSelected);
-    this.drawIsoBlock(ctx, bx, by - h * 0.7 * cosPitch, size * 0.5, h * 0.3, adjustColorBrightness(colorHex, 0.15), hasActivity, false);
+    const base = this.drawIsoBlock(ctx, bx, by, size * 0.9, h * 0.7, colorHex, hasActivity, isSelected, dateStr);
+    this.drawIsoBlock(ctx, bx, by - h * 0.7 * cosPitch, size * 0.5, h * 0.3, adjustColorBrightness(colorHex, 0.15), hasActivity, false, dateStr + '_t');
     return base;
   }
 
@@ -603,10 +647,12 @@ let autoRotate = false;
 let raf        = null;
 
 function tick() {
-  if (autoRotate && visualizer) {
-    visualizer.yaw      += 0.003;
-    visualizer.hoveredItem = null;
-    tooltip.style.display  = 'none';
+  if (visualizer) {
+    if (autoRotate) {
+      visualizer.yaw      += 0.003;
+      visualizer.hoveredItem = null;
+      tooltip.style.display  = 'none';
+    }
     visualizer.draw();
   }
   raf = requestAnimationFrame(tick);
@@ -685,10 +731,8 @@ async function load(username) {
   visualizer.generateSkyline({ history: {}, themeStyle: 'city' });
   overlay.classList.add('hidden');
 
-  if (isEmbed) {
-    autoRotate = true;
-    if (!raf) raf = requestAnimationFrame(tick);
-  }
+  if (!raf) raf = requestAnimationFrame(tick);
+  if (isEmbed) autoRotate = true;
 
   // Fetch data in the background and update the skyline when it arrives
   try {
