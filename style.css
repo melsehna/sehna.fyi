@@ -310,6 +310,14 @@ ul { list-style: none; }
   border-bottom-color: var(--text-2);
 }
 
+.research-prose {
+  font-size: 0.93rem;
+  color: #b8b4ae;
+  line-height: 1.85;
+  max-width: 520px;
+  margin-bottom: 0.5rem;
+}
+
 /* ============================================================
    Notes list
    ============================================================ */
