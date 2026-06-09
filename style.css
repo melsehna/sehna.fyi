@@ -260,10 +260,24 @@ ul { list-style: none; }
 .research-list {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 0.75rem;
 }
 
-.research-item {}
+.project-list {
+  padding-bottom: 4rem;
+}
+
+.research-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  transition: border-color var(--transition);
+}
+
+.research-item:hover {
+  border-color: var(--border-hover);
+}
 
 .research-item-title {
   font-size: 1.05rem;
