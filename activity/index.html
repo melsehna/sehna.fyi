@@ -674,12 +674,20 @@ async function fetchDays(username) {
 
 // ── Load ──────────────────────────────────────────────────────────────────────
 async function load(username) {
-  overlay.style.opacity       = '1';
-  overlay.style.pointerEvents = 'auto';
-  overlay.classList.remove('hidden');
-  overlayMsg.textContent = `Loading @${username}…`;
-  document.querySelector('.spinner').style.display = '';
+  // Show an empty skyline immediately — never stay stuck on a loading screen
+  periodLabel.textContent = `@${username}`;
+  if (!visualizer) {
+    visualizer = new Isometric2DVisualizer(canvas, onHover, null);
+  }
+  visualizer.generateSkyline({ history: {}, themeStyle: 'city' });
+  overlay.classList.add('hidden');
 
+  if (isEmbed) {
+    autoRotate = true;
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+
+  // Fetch data in the background and update the skyline when it arrives
   try {
     const days = await fetchDays(username);
 
@@ -692,7 +700,6 @@ async function load(username) {
       history.replaceState(null, '', url);
     }
 
-    // Convert to calendar history format expected by Isometric2DVisualizer
     const calHistory = {};
     days.forEach(d => {
       calHistory[d.date] = {
@@ -704,24 +711,10 @@ async function load(username) {
       };
     });
 
-    if (!visualizer) {
-      visualizer = new Isometric2DVisualizer(canvas, onHover, null);
-    }
     visualizer.generateSkyline({ history: calHistory, themeStyle: 'city' });
 
-    overlay.classList.add('hidden');
-
-    // Auto-rotate only in embed mode; start the loop once
-    if (isEmbed) {
-      autoRotate = true;
-      if (!raf) raf = requestAnimationFrame(tick);
-    }
-
   } catch (err) {
-    document.querySelector('.spinner').style.display = 'none';
-    overlayMsg.textContent = err.name === 'AbortError'
-      ? `Timed out loading @${username} — check the username and try again.`
-      : `Could not load @${username} — ${err.message}`;
+    periodLabel.textContent = `@${username} · ${err.name === 'AbortError' ? 'timed out' : 'failed to load'}`;
   }
 }
 
