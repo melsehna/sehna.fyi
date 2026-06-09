@@ -642,32 +642,35 @@ async function fetchWithTimeout(url, options, ms) {
 }
 
 async function fetchDays(username) {
-  const opts = { headers: { Accept: 'application/vnd.github+json' } };
-  const urls = [1, 2, 3].map(p =>
-    `https://api.github.com/users/${encodeURIComponent(username)}/events/public?per_page=100&page=${p}`
-  );
-  const responses = await Promise.all(urls.map(u => fetchWithTimeout(u, opts, 8000)));
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - 89);
 
-  const commitsByDay = {};
-  for (const res of responses) {
-    if (res.status === 404) throw new Error('User not found.');
+  // Fetch both years if the 90-day window crosses a year boundary
+  const years = [...new Set([startDate.getFullYear(), today.getFullYear()])];
+
+  const allContribs = (await Promise.all(years.map(async year => {
+    const res = await fetchWithTimeout(
+      `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=${year}`,
+      {},
+      8000
+    );
+    if (res.status === 404 || res.status === 400) throw new Error('User not found.');
     if (res.status === 403) throw new Error('Rate limited — try again in a minute.');
-    if (!res.ok) continue;
-    const events = await res.json();
-    events.forEach(ev => {
-      if (ev.type !== 'PushEvent') return;
-      const date  = ev.created_at.slice(0, 10);
-      const count = ev.payload.size ?? ev.payload.commits?.length ?? 1;
-      commitsByDay[date] = (commitsByDay[date] || 0) + count;
-    });
-  }
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.contributions || [];
+  }))).flat();
+
+  const byDate = {};
+  allContribs.forEach(c => { byDate[c.date] = c.count; });
 
   const out = [];
   for (let i = 89; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
-    out.push({ date: dateStr, count: commitsByDay[dateStr] || 0 });
+    out.push({ date: dateStr, count: byDate[dateStr] || 0 });
   }
   return out;
 }
