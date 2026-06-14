@@ -43,17 +43,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.block').forEach(el => blockObserver.observe(el));
 
-  // Cat carousel
+  // Cat carousel — Ken Burns + filmstrip indicators + click to advance
+  const KB = ['kb1', 'kb2', 'kb3', 'kb4'];
+
   document.querySelectorAll('.cat-photos').forEach(gallery => {
     const imgs = Array.from(gallery.querySelectorAll('img'));
     if (imgs.length < 2) return;
-    let current = 0;
+    let cur = 0;
 
-    setInterval(() => {
-      imgs[current].classList.remove('active');
-      current = (current + 1) % imgs.length;
-      imgs[current].classList.add('active');
-    }, 2600);
+    // Build filmstrip bar indicators
+    const film = document.createElement('div');
+    film.className = 'cat-film';
+    imgs.forEach((_, i) => {
+      const bar = document.createElement('span');
+      if (i === 0) bar.className = 'active';
+      film.appendChild(bar);
+    });
+    gallery.after(film);
+    const bars = Array.from(film.querySelectorAll('span'));
+
+    function startKB(img, idx) {
+      img.style.animation = 'none';
+      void img.offsetWidth; // force reflow so animation restarts
+      img.style.animation = `${KB[idx % KB.length]} 5s ease-in-out forwards`;
+    }
+
+    function goTo(n) {
+      imgs[cur].classList.remove('active');
+      imgs[cur].style.animation = '';
+      bars[cur].classList.remove('active');
+      cur = n;
+      startKB(imgs[cur], cur);
+      imgs[cur].classList.add('active');
+      bars[cur].classList.add('active');
+    }
+
+    startKB(imgs[0], 0);
+
+    let timer = setInterval(() => goTo((cur + 1) % imgs.length), 4500);
+
+    gallery.addEventListener('click', () => {
+      clearInterval(timer);
+      goTo((cur + 1) % imgs.length);
+      timer = setInterval(() => goTo((cur + 1) % imgs.length), 4500);
+    });
+
+    bars.forEach((bar, i) => {
+      bar.addEventListener('click', e => {
+        e.stopPropagation();
+        if (i === cur) return;
+        clearInterval(timer);
+        goTo(i);
+        timer = setInterval(() => goTo((cur + 1) % imgs.length), 4500);
+      });
+    });
   });
 
 });
