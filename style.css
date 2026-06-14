@@ -303,8 +303,8 @@ ul { list-style: none; }
 }
 
 .view-all:hover {
-  color: var(--text);
-  border-bottom-color: var(--text-2);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .research-prose {
@@ -369,7 +369,8 @@ ul { list-style: none; }
 }
 
 .note-row a:hover {
-  border-bottom-color: var(--border-hover);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .note-date {
@@ -491,8 +492,8 @@ ul { list-style: none; }
 }
 
 .activity-caption a:hover {
-  color: var(--text);
-  border-bottom-color: var(--text-3);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 @media (max-width: 640px) {
