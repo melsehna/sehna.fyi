@@ -282,6 +282,14 @@ ul { list-style: none; }
   border-bottom-color: var(--accent);
 }
 
+.research-item-title a {
+  color: var(--text);
+  border: none;
+  transition: color var(--transition);
+}
+
+.research-item-title a:hover { color: var(--accent); }
+
 .view-all {
   margin-top: 2rem;
   display: inline-block;
