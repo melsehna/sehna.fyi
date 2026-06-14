@@ -5,17 +5,10 @@
   <title>GitHub Activity Skyline</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="3D GitHub contribution skyline — visualise any user's last 90 days of commits.">
+  <!-- Adobe Fonts (Graphie) — replace XXXXXXX with your kit ID from fonts.adobe.com/web -->
+  <link rel="stylesheet" href="https://use.typekit.net/XXXXXXX.css">
   <style>
-    @font-face {
-      font-family: 'Candid';
-      src: url('/fonts/Candid-Regular.ttf') format('truetype');
-      font-weight: 400; font-style: normal; font-display: swap;
-    }
-    @font-face {
-      font-family: 'Candid';
-      src: url('/fonts/Candid-Bold.ttf') format('truetype');
-      font-weight: 700; font-style: normal; font-display: swap;
-    }
+    /* Graphie via Adobe Fonts — kit link added in <head> above */
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -33,7 +26,7 @@
       width: 100%; height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: 'Candid', system-ui, sans-serif;
+      font-family: 'graphie', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       overflow: hidden;
     }
