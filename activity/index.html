@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>GitHub Activity Skyline</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="3D GitHub contribution skyline — visualise any user's last 90 days of commits.">
+  <!-- Adobe Fonts (Graphie) — replace XXXXXXX with your kit ID from fonts.adobe.com/web -->
+  <link rel="stylesheet" href="https://use.typekit.net/XXXXXXX.css">
+  <style>
+    /* Graphie via Adobe Fonts — kit link added in <head> above */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0b0b0b;
+      --surface: #141414;
+      --border:  #1e1e1e;
+      --text:    #e2dfd9;
+      --text-2:  #8a8a8a;
+      --text-3:  #444;
+      --accent:  #6fa86f;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'graphie', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    #app { display: flex; flex-direction: column; height: 100vh; }
+
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 0 1.5rem;
+      height: 52px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #toolbar h1 { font-size: 0.88rem; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+
+    .home-link { font-size: 0.78rem; color: var(--text-3); text-decoration: none; border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
+    .home-link:hover { color: var(--text-2); border-bottom-color: var(--text-3); }
+
+    .input-group { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+    .input-prefix { font-size: 0.78rem; color: var(--text-3); }
+
+    #username-input {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      font-family: inherit; font-size: 0.82rem; padding: 0.32rem 0.65rem;
+      border-radius: 5px; width: 160px; outline: none; transition: border-color 0.15s;
+    }
+    #username-input:focus { border-color: var(--accent); }
+    #username-input::placeholder { color: var(--text-3); }
+
+    #view-btn {
+      background: var(--accent); color: #0b0b0b; border: none; font-family: inherit;
+      font-weight: 700; font-size: 0.78rem; padding: 0.36rem 0.9rem;
+      border-radius: 5px; cursor: pointer; letter-spacing: 0.02em; transition: background 0.15s;
+    }
+    #view-btn:hover { background: #86c986; }
+
+    #canvas-wrap { flex: 1; position: relative; overflow: hidden; cursor: grab; }
+    #canvas-wrap:active { cursor: grabbing; }
+    #activity-canvas { width: 100%; height: 100%; display: block; }
+
+    #overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 0.9rem;
+      background: var(--bg); transition: opacity 0.4s ease;
+    }
+    #overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .spinner {
+      width: 28px; height: 28px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #overlay-msg { font-size: 0.82rem; color: var(--text-2); }
+
+    #hint {
+      position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
+      font-size: 0.7rem; color: var(--text-3); pointer-events: none;
+      white-space: nowrap; letter-spacing: 0.04em;
+    }
+
+    #period-label {
+      position: absolute; top: 1rem; left: 1.25rem;
+      font-size: 0.72rem; color: var(--text-3);
+      pointer-events: none; letter-spacing: 0.04em;
+    }
+
+    #tooltip {
+      position: absolute; display: none; pointer-events: none;
+      background: rgba(20, 20, 20, 0.92); color: var(--text);
+      font-size: 11px; font-weight: 600; padding: 5px 9px;
+      border-radius: 4px; white-space: nowrap; z-index: 10;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <h1>GitHub Activity Skyline</h1>
+    <a href="/" class="home-link">sehna.fyi</a>
+    <div class="input-group">
+      <span class="input-prefix">github.com /</span>
+      <input id="username-input" type="text" placeholder="username"
+             autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <button id="view-btn">View →</button>
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <canvas id="activity-canvas"></canvas>
+    <div id="overlay">
+      <div class="spinner"></div>
+      <span id="overlay-msg">Loading contributions…</span>
+    </div>
+    <div id="period-label"></div>
+    <div id="hint">Drag to rotate &nbsp;·&nbsp; Scroll to zoom &nbsp;·&nbsp; Shift+drag to pan</div>
+    <div id="tooltip"></div>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const params   = new URLSearchParams(location.search);
+const initUser = params.get('user') || 'melsehna';
+const isEmbed  = params.get('embed') === '1';
+
+if (isEmbed) {
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('hint').style.display    = 'none';
+}
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const input       = document.getElementById('username-input');
+const viewBtn     = document.getElementById('view-btn');
+const overlay     = document.getElementById('overlay');
+const overlayMsg  = document.getElementById('overlay-msg');
+const periodLabel = document.getElementById('period-label');
+const canvas      = document.getElementById('activity-canvas');
+const wrap        = document.getElementById('canvas-wrap');
+const tooltip     = document.getElementById('tooltip');
+
+input.value = initUser;
+
+// ── Colour helpers (GitHub green palette) ─────────────────────────────────────
+function calculateBlendedColor(dayData) {
+  if (!dayData || dayData.totalHours === 0) return { r: 26,  g: 26,  b: 26  };
+  const c = dayData.totalHours;
+  if (c <= 2)  return { r: 30,  g: 58,  b: 30  };
+  if (c <= 5)  return { r: 45,  g: 90,  b: 45  };
+  if (c <= 9)  return { r: 74,  g: 138, b: 74  };
+  return              { r: 111, g: 168, b: 111 };
+}
+
+function rgbToHex(r, g, b) {
+  const h = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return '#' + h(r) + h(g) + h(b);
+}
+
+function adjustColorBrightness(hex, pct) {
+  if (hex.startsWith('rgb')) {
+    const p = hex.match(/\d+/g);
+    if (p && p.length >= 3) {
+      return `rgb(${Math.round(Math.max(0,Math.min(255,+p[0]*(1+pct))))},${Math.round(Math.max(0,Math.min(255,+p[1]*(1+pct))))},${Math.round(Math.max(0,Math.min(255,+p[2]*(1+pct))))})`;
+    }
+  }
+  const R = Math.max(0,Math.min(255, parseInt(hex.slice(1,3),16) * (1+pct)));
+  const G = Math.max(0,Math.min(255, parseInt(hex.slice(3,5),16) * (1+pct)));
+  const B = Math.max(0,Math.min(255, parseInt(hex.slice(5,7),16) * (1+pct)));
+  return '#' + Math.round(R).toString(16).padStart(2,'0')
+             + Math.round(G).toString(16).padStart(2,'0')
+             + Math.round(B).toString(16).padStart(2,'0');
+}
+
+function isPointInPolygon(p, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y, xj = poly[j].x, yj = poly[j].y;
+    if (((yi > p.y) !== (yj > p.y)) && p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi)
+      inside = !inside;
+  }
+  return inside;
+}
+
+function interpolateFacePoint(topFront, topSide, baseFront, tx, ty) {
+  return {
+    x: topFront.x + (topSide.x - topFront.x) * tx + (baseFront.x - topFront.x) * ty,
+    y: topFront.y + (topSide.y - topFront.y) * tx + (baseFront.y - topFront.y) * ty
+  };
+}
+
+// ── Isometric2DVisualizer — ported from skyline-tracker/src/renderer3d.js ─────
+// Changes from source:
+//   • draw() uses a 90-day grid (was 365)
+//   • calculateBlendedColor uses GitHub green (defined above)
+//   • No selectedDateStr / click-to-select (unused here)
+class Isometric2DVisualizer {
+  constructor(canvasElement, onBuildingHover, onBuildingClick) {
+    this.canvas = canvasElement;
+    this.ctx = this.canvas.getContext('2d');
+    this.calendar = null;
+    this.onBuildingHover = onBuildingHover;
+    this.onBuildingClick = onBuildingClick;
+
+    this.scale = 1.0;
+    this.offsetX = 0;
+    this.offsetY = 0;
+    this.yaw = -Math.PI / 4;
+    this.pitch = Math.atan(Math.SQRT1_2);
+    this.isDragging = false;
+    this.dragStart = { x: 0, y: 0 };
+    this.dragDistance = 0;
+    this.hoveredItem = null;
+    this.renderedItems = [];
+
+    this.shootingStars = [];
+
+    this.resizeListener    = this.onResize.bind(this);
+    this.mouseDownListener = this.onMouseDown.bind(this);
+    this.mouseMoveListener = this.onMouseMove.bind(this);
+    this.mouseUpListener   = this.onMouseUp.bind(this);
+    this.mouseLeaveListener = this.onMouseLeave.bind(this);
+    this.wheelListener     = this.onWheel.bind(this);
+    this.clickListener     = this.onMouseClick.bind(this);
+    this.contextMenuListener = e => e.preventDefault();
+
+    window.addEventListener('resize', this.resizeListener);
+    this.canvas.addEventListener('mousedown',   this.mouseDownListener);
+    this.canvas.addEventListener('mousemove',   this.mouseMoveListener);
+    this.canvas.addEventListener('mouseup',     this.mouseUpListener);
+    this.canvas.addEventListener('mouseleave',  this.mouseLeaveListener);
+    this.canvas.addEventListener('wheel',       this.wheelListener, { passive: false });
+    this.canvas.addEventListener('click',       this.clickListener);
+    this.canvas.addEventListener('contextmenu', this.contextMenuListener);
+
+    this.onResize();
+  }
+
+  onResize() {
+    if (!this.canvas) return;
+    const parent = this.canvas.parentElement;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width  = rect.width  * dpr;
+    this.canvas.height = rect.height * dpr;
+    this.canvas.style.width  = rect.width  + 'px';
+    this.canvas.style.height = rect.height + 'px';
+    this.ctx.scale(dpr, dpr);
+    this.draw();
+  }
+
+  generateSkyline(calendar) { this.calendar = calendar; this.draw(); }
+  setTimeOfDay() {}
+
+  onMouseDown(e) {
+    this.isDragging   = true;
+    this.dragStart    = { x: e.clientX, y: e.clientY };
+    this.dragDistance = 0;
+  }
+
+  onMouseMove(e) {
+    if (this.isDragging) {
+      const dx = e.clientX - this.dragStart.x;
+      const dy = e.clientY - this.dragStart.y;
+      this.dragDistance += Math.hypot(dx, dy);
+      if (e.shiftKey || e.ctrlKey || e.buttons === 2) {
+        this.offsetX += dx;
+        this.offsetY += dy;
+      } else {
+        this.yaw   += dx * 0.007;
+        this.pitch  = Math.max(0.15, Math.min(1.4, this.pitch + dy * 0.007));
+      }
+      this.dragStart = { x: e.clientX, y: e.clientY };
+      this.draw();
+    } else {
+      this.checkHover(e);
+    }
+  }
+
+  onMouseUp()    { this.isDragging = false; }
+  onMouseLeave() {
+    this.isDragging  = false;
+    this.hoveredItem = null;
+    if (this.onBuildingHover) this.onBuildingHover(null, null, null);
+    tooltip.style.display = 'none';
+  }
+
+  onWheel(e) {
+    e.preventDefault();
+    this.scale = Math.max(0.4, Math.min(3.5, this.scale * (e.deltaY > 0 ? 0.93 : 1.07)));
+    this.draw();
+  }
+
+  onMouseClick(e) {
+    if (this.dragDistance > 5 || !this.onBuildingClick || !this.calendar) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    for (let i = this.renderedItems.length - 1; i >= 0; i--) {
+      const item = this.renderedItems[i];
+      if (isPointInPolygon({ x: mx, y: my }, item.polygon)) {
+        this.onBuildingClick(item.dateStr, this.calendar.history[item.dateStr]);
+        break;
+      }
+    }
+  }
+
+  checkHover(e) {
+    if (!this.calendar || !this.canvas) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    let found = null;
+    for (let i = this.renderedItems.length - 1; i >= 0; i--) {
+      if (isPointInPolygon({ x: mx, y: my }, this.renderedItems[i].polygon)) {
+        found = this.renderedItems[i]; break;
+      }
+    }
+    if (found !== this.hoveredItem) {
+      this.hoveredItem = found;
+      if (this.onBuildingHover) {
+        const dayData = found ? this.calendar.history[found.dateStr] : null;
+        this.onBuildingHover(found ? e : null, found ? found.dateStr : null, dayData);
+      }
+    } else if (this.hoveredItem && this.onBuildingHover) {
+      this.onBuildingHover(e, this.hoveredItem.dateStr, this.calendar.history[this.hoveredItem.dateStr]);
+    }
+  }
+
+  draw() {
+    if (!this.calendar || !this.canvas) return;
+    const width  = this.canvas.width  / (window.devicePixelRatio || 1);
+    const height = this.canvas.height / (window.devicePixelRatio || 1);
+    const ctx = this.ctx;
+    this._t = performance.now() / 1000;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Background gradient
+    const gradient = ctx.createRadialGradient(width/2, height/2, 10, width/2, height/2, width * 0.7);
+    gradient.addColorStop(0, '#0c1220');
+    gradient.addColorStop(1, '#030408');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Twinkling stars — each star has a unique speed and phase
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 60; i++) {
+      const sx   = Math.abs(Math.sin(i * 123.45)) * width;
+      const sy   = Math.abs(Math.cos(i * 987.65)) * (height * 0.7);
+      const size = Math.abs(Math.sin(i * 50)) * 1.2 + 0.2;
+      const base = Math.abs(Math.sin(i * 5)) * 0.6 + 0.2;
+      const twinkle = 0.6 + 0.4 * Math.sin(this._t * (0.3 + (i % 7) * 0.14) + i * 2.1);
+      ctx.globalAlpha = base * twinkle;
+      ctx.fillRect(sx, sy, size, size);
+    }
+    ctx.globalAlpha = 1.0;
+
+    // Shooting stars
+    if (Math.random() < 0.0015) {
+      const angle = Math.PI / 7 + Math.random() * Math.PI / 5;
+      const speed = 4 + Math.random() * 7;
+      this.shootingStars.push({
+        x: Math.random() * width * 0.75,
+        y: Math.random() * height * 0.38,
+        dx: Math.cos(angle) * speed,
+        dy: Math.sin(angle) * speed,
+        tailLen: 40 + Math.random() * 65,
+        alpha: 0.85 + Math.random() * 0.15,
+        decay: 0.016 + Math.random() * 0.014
+      });
+    }
+    for (let k = this.shootingStars.length - 1; k >= 0; k--) {
+      const ss = this.shootingStars[k];
+      const ang = Math.atan2(ss.dy, ss.dx);
+      const tx = ss.x - Math.cos(ang) * ss.tailLen;
+      const ty = ss.y - Math.sin(ang) * ss.tailLen;
+      const grad2 = ctx.createLinearGradient(ss.x, ss.y, tx, ty);
+      grad2.addColorStop(0, `rgba(255,255,255,${ss.alpha.toFixed(2)})`);
+      grad2.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = grad2;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(ss.x, ss.y); ctx.lineTo(tx, ty); ctx.stroke();
+      ss.x += ss.dx; ss.y += ss.dy; ss.alpha -= ss.decay;
+      if (ss.alpha <= 0 || ss.x > width + 120 || ss.y > height + 120) {
+        this.shootingStars.splice(k, 1);
+      }
+    }
+
+    const history = this.calendar.history || {};
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // 90-day grid (aligned to previous Sunday)
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 90);
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+
+    const weeks = [];
+    let current = new Date(startDate);
+    while (current <= today) {
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        week.push(current <= today ? new Date(current) : null);
+        current.setDate(current.getDate() + 1);
+      }
+      weeks.push(week);
+    }
+
+    const numCols = weeks.length;
+    const cellW = Math.max(5, Math.min(18, width / (numCols * 1.6))) * this.scale;
+
+    const centerX = width / 2 + this.offsetX;
+    const centerY = height * 0.55 + this.offsetY;
+
+    const items = [];
+    weeks.forEach((week, colIdx) => {
+      week.forEach((date, rowIdx) => {
+        if (!date) return;
+        const dateStr   = date.toISOString().split('T')[0];
+        const dayData   = history[dateStr];
+        const hasActivity = dayData && dayData.totalHours > 0;
+        const totalHours  = hasActivity ? dayData.totalHours : 0;
+
+        const heightVal = hasActivity ? 5 + Math.log(totalHours + 1) * 26 : 2;
+        const colorObj  = calculateBlendedColor(dayData);
+        const colorHex  = rgbToHex(colorObj.r, colorObj.g, colorObj.b);
+
+        const gridX = colIdx - numCols / 2;
+        const gridY = rowIdx - 3.5;
+        const x3d = gridX * cellW * 1.5;
+        const z3d = gridY * cellW * 1.5;
+        const rz  = x3d * Math.sin(this.yaw) + z3d * Math.cos(this.yaw);
+
+        items.push({ x3d, z3d, rz, heightVal, colorHex, hasActivity, dateStr, commits: totalHours });
+      });
+    });
+
+    items.sort((a, b) => a.rz - b.rz);
+    this.renderedItems = [];
+
+    items.forEach(item => {
+      const rx = item.x3d * Math.cos(this.yaw) - item.z3d * Math.sin(this.yaw);
+      const rz = item.x3d * Math.sin(this.yaw) + item.z3d * Math.cos(this.yaw);
+      const bx = centerX + rx;
+      const by = centerY + rz * Math.sin(this.pitch);
+      const isSelected = false;
+
+      let poly;
+      if (item.hasActivity) {
+        if      (item.commits <= 2) poly = this.drawIsoHouse(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, true, isSelected);
+        else if (item.commits <= 5) poly = this.drawIsoComplex(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, true, isSelected, item.dateStr);
+        else                        poly = this.drawIsoBlock(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, true, isSelected, item.dateStr);
+      } else {
+        poly = this.drawIsoBlock(ctx, bx, by, cellW, item.heightVal * this.scale, item.colorHex, false, isSelected);
+      }
+
+      this.renderedItems.push({ dateStr: item.dateStr, commits: item.commits, polygon: poly });
+    });
+  }
+
+  drawIsoBlock(ctx, bx, by, size, h, colorHex, hasActivity, isSelected = false, dateStr = '') {
+    const s = size / 2;
+    const offsets3d = [
+      { x: 0, z: -s }, { x: s, z: 0 }, { x: 0, z: s }, { x: -s, z: 0 }
+    ];
+    const baseCorners = [], topCorners = [], cornerDepths = [];
+    const cosYaw = Math.cos(this.yaw), sinYaw = Math.sin(this.yaw);
+    const sinPitch = Math.sin(this.pitch), cosPitch = Math.cos(this.pitch);
+
+    offsets3d.forEach((off, idx) => {
+      const rx = off.x * cosYaw - off.z * sinYaw;
+      const rz = off.x * sinYaw + off.z * cosYaw;
+      baseCorners.push({ x: bx + rx, y: by + rz * sinPitch });
+      topCorners.push({  x: bx + rx, y: by + rz * sinPitch - h * cosPitch });
+      cornerDepths.push({ idx, depth: rz });
+    });
+
+    cornerDepths.sort((a, b) => b.depth - a.depth);
+    const fi = cornerDepths[0].idx;
+    const li = (fi - 1 + 4) % 4;
+    const ri = (fi + 1) % 4;
+
+    ctx.fillStyle = adjustColorBrightness(colorHex, -0.22);
+    ctx.beginPath();
+    ctx.moveTo(topCorners[fi].x, topCorners[fi].y); ctx.lineTo(topCorners[li].x, topCorners[li].y);
+    ctx.lineTo(baseCorners[li].x, baseCorners[li].y); ctx.lineTo(baseCorners[fi].x, baseCorners[fi].y);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = adjustColorBrightness(colorHex, 0.12);
+    ctx.beginPath();
+    ctx.moveTo(topCorners[fi].x, topCorners[fi].y); ctx.lineTo(topCorners[ri].x, topCorners[ri].y);
+    ctx.lineTo(baseCorners[ri].x, baseCorners[ri].y); ctx.lineTo(baseCorners[fi].x, baseCorners[fi].y);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = colorHex;
+    ctx.beginPath();
+    topCorners.forEach((c, i) => i === 0 ? ctx.moveTo(c.x, c.y) : ctx.lineTo(c.x, c.y));
+    ctx.closePath(); ctx.fill();
+
+    if (hasActivity && h > 20) {
+      const t = this._t || 0;
+      const dHash = dateStr ? dateStr.split('').reduce((a, c, i) => a + c.charCodeAt(0) * (i + 1), 0) : 0;
+      const numRowsWin = Math.min(6, Math.floor(h / 12));
+      for (let r = 0; r < numRowsWin; r++) {
+        const ty = 0.2 + (r / numRowsWin) * 0.6;
+        for (let c = 0; c < 2; c++) {
+          const tx = 0.25 + (c / 2) * 0.5;
+          const lHash = (dHash + r * 17 + c * 31) % 1000;
+          if (Math.sin(t * 0.35 + lHash) > -0.92) {
+            const pL = interpolateFacePoint(topCorners[fi], topCorners[li], baseCorners[fi], tx, ty);
+            ctx.fillStyle = '#ffeb3b'; ctx.globalAlpha = 0.85;
+            ctx.fillRect(pL.x - 0.7, pL.y - 0.7, 1.4, 1.4);
+          }
+          const rHash = (dHash + r * 17 + c * 31 + 500) % 1000;
+          if (Math.sin(t * 0.35 + rHash) > -0.92) {
+            const pR = interpolateFacePoint(topCorners[fi], topCorners[ri], baseCorners[fi], tx, ty);
+            ctx.fillStyle = '#ffeb3b'; ctx.globalAlpha = 0.85;
+            ctx.fillRect(pR.x - 0.7, pR.y - 0.7, 1.4, 1.4);
+          }
+        }
+      }
+      ctx.globalAlpha = 1.0;
+    }
+
+    ctx.strokeStyle = hasActivity ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    topCorners.forEach((c, i) => i === 0 ? ctx.moveTo(c.x, c.y) : ctx.lineTo(c.x, c.y));
+    ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(topCorners[fi].x, topCorners[fi].y); ctx.lineTo(baseCorners[fi].x, baseCorners[fi].y); ctx.stroke();
+
+    const poly = [baseCorners[fi], baseCorners[li], topCorners[li], topCorners[0], topCorners[ri], baseCorners[ri]];
+    if (isSelected) {
+      ctx.strokeStyle = '#6fa86f'; ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#6fa86f'; ctx.shadowBlur = 6;
+      ctx.beginPath(); poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath(); ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    return poly;
+  }
+
+  drawIsoComplex(ctx, bx, by, size, h, colorHex, hasActivity, isSelected = false, dateStr = '') {
+    const cosPitch = Math.cos(this.pitch);
+    const base = this.drawIsoBlock(ctx, bx, by, size * 0.9, h * 0.7, colorHex, hasActivity, isSelected, dateStr);
+    this.drawIsoBlock(ctx, bx, by - h * 0.7 * cosPitch, size * 0.5, h * 0.3, adjustColorBrightness(colorHex, 0.15), hasActivity, false, dateStr + '_t');
+    return base;
+  }
+
+  drawIsoHouse(ctx, bx, by, size, h, colorHex, hasActivity, isSelected = false) {
+    const s = size / 2;
+    const bodyH = h * 0.6, roofH = h * 0.4;
+    const baseCorners = [], topCorners = [], cornerDepths = [];
+    const cosYaw = Math.cos(this.yaw), sinYaw = Math.sin(this.yaw);
+    const sinPitch = Math.sin(this.pitch), cosPitch = Math.cos(this.pitch);
+
+    [{ x: 0, z: -s * 0.8 }, { x: s * 0.8, z: 0 }, { x: 0, z: s * 0.8 }, { x: -s * 0.8, z: 0 }]
+      .forEach((off, idx) => {
+        const rx = off.x * cosYaw - off.z * sinYaw;
+        const rz = off.x * sinYaw + off.z * cosYaw;
+        baseCorners.push({ x: bx + rx, y: by + rz * sinPitch });
+        topCorners.push({  x: bx + rx, y: by + rz * sinPitch - bodyH * cosPitch });
+        cornerDepths.push({ idx, depth: rz });
+      });
+
+    cornerDepths.sort((a, b) => b.depth - a.depth);
+    const fi = cornerDepths[0].idx, li = (fi - 1 + 4) % 4, ri = (fi + 1) % 4;
+
+    ctx.fillStyle = adjustColorBrightness(colorHex, -0.22);
+    ctx.beginPath();
+    ctx.moveTo(topCorners[fi].x, topCorners[fi].y); ctx.lineTo(topCorners[li].x, topCorners[li].y);
+    ctx.lineTo(baseCorners[li].x, baseCorners[li].y); ctx.lineTo(baseCorners[fi].x, baseCorners[fi].y);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = adjustColorBrightness(colorHex, 0.12);
+    ctx.beginPath();
+    ctx.moveTo(topCorners[fi].x, topCorners[fi].y); ctx.lineTo(topCorners[ri].x, topCorners[ri].y);
+    ctx.lineTo(baseCorners[ri].x, baseCorners[ri].y); ctx.lineTo(baseCorners[fi].x, baseCorners[fi].y);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = '#8b5a2b';
+    const p0 = {
+      x: baseCorners[fi].x + (baseCorners[ri].x - baseCorners[fi].x) * 0.35,
+      y: baseCorners[fi].y + (baseCorners[ri].y - baseCorners[fi].y) * 0.35
+    };
+    const p1 = {
+      x: baseCorners[fi].x + (baseCorners[ri].x - baseCorners[fi].x) * 0.65,
+      y: baseCorners[fi].y + (baseCorners[ri].y - baseCorners[fi].y) * 0.65
+    };
+    const doorH = bodyH * 0.45;
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y);
+    ctx.lineTo(p1.x, p1.y - doorH); ctx.lineTo(p0.x, p0.y - doorH);
+    ctx.closePath(); ctx.fill();
+
+    const peakX = bx, peakY = by - h * cosPitch;
+    ctx.fillStyle = adjustColorBrightness('#a94442', -0.15);
+    ctx.beginPath();
+    ctx.moveTo(peakX, peakY); ctx.lineTo(topCorners[li].x, topCorners[li].y); ctx.lineTo(topCorners[fi].x, topCorners[fi].y);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = adjustColorBrightness('#a94442', 0.1);
+    ctx.beginPath();
+    ctx.moveTo(peakX, peakY); ctx.lineTo(topCorners[ri].x, topCorners[ri].y); ctx.lineTo(topCorners[fi].x, topCorners[fi].y);
+    ctx.closePath(); ctx.fill();
+
+    const poly = [baseCorners[fi], baseCorners[li], topCorners[li], { x: peakX, y: peakY }, topCorners[ri], baseCorners[ri]];
+    if (isSelected) {
+      ctx.strokeStyle = '#6fa86f'; ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#6fa86f'; ctx.shadowBlur = 6;
+      ctx.beginPath(); poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath(); ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    return poly;
+  }
+
+  destroy() {
+    window.removeEventListener('resize', this.resizeListener);
+    if (this.canvas) {
+      ['mousedown','mousemove','mouseup','mouseleave','click','contextmenu'].forEach(ev => {
+        this.canvas.removeEventListener(ev, this[ev + 'Listener'] || this.contextMenuListener);
+      });
+      this.canvas.removeEventListener('wheel', this.wheelListener);
+    }
+    this.canvas = null;
+  }
+}
+
+// ── App state ─────────────────────────────────────────────────────────────────
+let visualizer = null;
+let autoRotate = false;
+let raf        = null;
+
+function tick() {
+  if (visualizer) {
+    if (autoRotate) {
+      visualizer.yaw      += 0.003;
+      visualizer.hoveredItem = null;
+      tooltip.style.display  = 'none';
+    }
+    visualizer.draw();
+  }
+  raf = requestAnimationFrame(tick);
+}
+
+// ── Tooltip handler ───────────────────────────────────────────────────────────
+function onHover(e, dateStr, dayData) {
+  if (!e || !dayData || dayData.totalHours === 0) { tooltip.style.display = 'none'; return; }
+  const rect = canvas.getBoundingClientRect();
+  const n = dayData.totalHours;
+  tooltip.textContent = `${dateStr}  ·  ${n} commit${n !== 1 ? 's' : ''}`;
+  tooltip.style.display = 'block';
+  let x = e.clientX - rect.left + 14;
+  const y = e.clientY - rect.top - 36;
+  if (x + tooltip.offsetWidth > rect.width) x = e.clientX - rect.left - tooltip.offsetWidth - 8;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top  = y + 'px';
+}
+
+// ── Stop auto-rotate on user interaction ─────────────────────────────────────
+wrap.addEventListener('mousedown',  () => { autoRotate = false; });
+wrap.addEventListener('touchstart', () => { autoRotate = false; }, { passive: true });
+
+// ── Fetch (parallel pages, 8 s timeout) ──────────────────────────────────────
+async function fetchWithTimeout(url, options, ms) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
+async function fetchDays(username) {
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - 89);
+
+  // Fetch both years if the 90-day window crosses a year boundary
+  const years = [...new Set([startDate.getFullYear(), today.getFullYear()])];
+
+  const allContribs = (await Promise.all(years.map(async year => {
+    const res = await fetchWithTimeout(
+      `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=${year}`,
+      {},
+      8000
+    );
+    if (res.status === 404 || res.status === 400) throw new Error('User not found.');
+    if (res.status === 403) throw new Error('Rate limited — try again in a minute.');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.contributions || [];
+  }))).flat();
+
+  const byDate = {};
+  allContribs.forEach(c => { byDate[c.date] = c.count; });
+
+  const out = [];
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    out.push({ date: dateStr, count: byDate[dateStr] || 0 });
+  }
+  return out;
+}
+
+// ── Load ──────────────────────────────────────────────────────────────────────
+async function load(username) {
+  // Show an empty skyline immediately — never stay stuck on a loading screen
+  periodLabel.textContent = `@${username}`;
+  if (!visualizer) {
+    visualizer = new Isometric2DVisualizer(canvas, onHover, null);
+  }
+  visualizer.generateSkyline({ history: {}, themeStyle: 'city' });
+  overlay.classList.add('hidden');
+
+  if (!raf) raf = requestAnimationFrame(tick);
+  if (isEmbed) autoRotate = true;
+
+  // Fetch data in the background and update the skyline when it arrives
+  try {
+    const days = await fetchDays(username);
+
+    const fmt = s => new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    periodLabel.textContent = `@${username} · ${fmt(days[0].date)} – ${fmt(days[days.length - 1].date)}`;
+
+    if (!isEmbed) {
+      const url = new URL(location.href);
+      url.searchParams.set('user', username);
+      history.replaceState(null, '', url);
+    }
+
+    const calHistory = {};
+    days.forEach(d => {
+      calHistory[d.date] = {
+        focusHours:   d.count,
+        meetingHours: 0,
+        neutralHours: 0,
+        totalHours:   d.count,
+        events: d.count > 0 ? [{ title: `${d.count} commit${d.count !== 1 ? 's' : ''}`, hours: d.count, cat: 'focus' }] : []
+      };
+    });
+
+    visualizer.generateSkyline({ history: calHistory, themeStyle: 'city' });
+
+  } catch (err) {
+    periodLabel.textContent = `@${username} · ${err.name === 'AbortError' ? 'timed out' : 'failed to load'}`;
+  }
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+viewBtn.addEventListener('click',   () => { const u = input.value.trim(); if (u) load(u); });
+input.addEventListener('keydown',   e  => { if (e.key === 'Enter') { const u = input.value.trim(); if (u) load(u); } });
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+load(initUser);
+</script>
+</body>
+</html>
