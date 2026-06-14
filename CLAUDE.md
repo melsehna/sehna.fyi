@@ -34,37 +34,49 @@ All asset paths are root-relative (e.g., `/style.css`, `/images/sehna.jpg`), so 
 Every page shares the same shell — copy it when adding a new page:
 
 ```html
-<header class="site-header">
-  <nav class="nav">
-    <a href="/">Home</a>
-    <a href="/projects/">Projects</a>
-    <a href="/notes/">Notes</a>
-    <a href="/cv/">CV</a>
-    <a href="https://github.com/melsehna">GitHub</a>
-  </nav>
-</header>
+<nav class="site-nav">
+  <div class="container">
+    <a href="/" class="nav-name">Seh Na Mellick</a>
+    <ul class="nav-links">
+      <li><a href="/projects/">Projects</a></li>
+      <li><a href="/notes/">Notes</a></li>
+      <li><a href="/cv/">CV</a></li>
+      <li><a href="https://github.com/melsehna">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
 
 <main>
-  <section class="hero">
-    <h1>Page Title</h1>
-    <p class="subtitle">One-line description.</p>
-  </section>
-  <!-- content sections -->
+  <div class="container">
+    <!-- content -->
+  </div>
 </main>
 
 <footer class="site-footer">
-  <p>Footer text</p>
+  <div class="container">
+    <p>&copy; 2026 Seh Na Mellick</p>
+  </div>
 </footer>
 ```
 
+Interior pages use `<header class="page-header">` (projects, notes index, CV) or `<header class="article-header">` (individual notes). Article headers include `.article-back`, `.article-title`, and `<time class="article-date">`.
+
 ## CSS conventions
 
-- Single stylesheet (`style.css`) — do not add page-specific `<style>` blocks.
+- Single stylesheet (`style.css`) — do not add page-specific `<style>` blocks. Exception: `activity/index.html` is a self-contained mini-app with inline styles.
 - Cabin is self-hosted from `/fonts/`; do not add Google Fonts or other external font links.
-- Use inline `style="margin-top:1.2rem;"` sparingly for one-off spacing between list items (as seen in `projects/index.html`). Prefer adding a class to `style.css` for anything reused.
-- Mobile breakpoint is `700px` — keep responsive styles in the existing `@media (max-width: 700px)` block at the bottom of `style.css`.
+- Mobile breakpoint is `640px` — keep responsive styles in the existing `@media (max-width: 640px)` block at the bottom of `style.css`. (The `700px` breakpoint in the file is only for `.research-illustration`.)
+- CSS custom properties are defined on `:root` in `style.css`: `--bg`, `--surface`, `--border`, `--border-hover`, `--text`, `--text-2`, `--text-3`, `--accent` (`#6fa86f`), `--max`, `--pad`, `--radius`, `--transition`. Use these instead of hardcoded values.
+
+## JavaScript (`script.js`)
+
+`script.js` is included only on `index.html`. It handles:
+- Typewriter effect for `#hero-role`
+- Scroll reveal (`.reveal` → `.visible` via IntersectionObserver)
+- Block highlight (`.block` → `.in-view` when centered in viewport)
+- Cat photo carousel (cycles `.cat-photos img` with `.active`)
 
 ## Adding a new note
 
-1. Create `notes/<slug>.html` — include the shared nav/footer shell and link back with `<a href="/notes/">← All notes</a>`.
-2. Add a list item to `notes/index.html` following the existing pattern (title link + date span).
+1. Create `notes/<slug>.html` — use the shared nav/footer shell, `<header class="article-header">` with `.article-back`, `.article-title`, and `<time class="article-date">`, and `<div class="article-body">` for prose.
+2. Add a list item to `notes/index.html` following the existing pattern (title link + `.note-date` span).
