@@ -727,7 +727,12 @@ ul { list-style: none; }
   padding-top: 0.05rem;
 }
 
-.cv-kv-body { color: var(--text-2); }
+.cv-kv-body {
+  color: var(--text-2);
+  transition: color var(--transition);
+}
+
+.cv-kv:hover .cv-kv-body { color: var(--text); }
 
 /* ============================================================
    CV timeline
