@@ -34,14 +34,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.reveal, .tl-item').forEach(el => observer.observe(el));
 
-  // Block highlight: accent border when block is in the center of the viewport
-  const blockObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      entry.target.classList.toggle('in-view', entry.isIntersecting);
-    });
-  }, { rootMargin: '-18% 0px -18% 0px', threshold: 0 });
+  // Block highlight: the section containing the viewport's vertical center
+  // gets .in-view — exactly one (or none) at a time
+  const sections = Array.from(document.querySelectorAll('.block, .cv-section'));
+  if (sections.length) {
+    let ticking = false;
 
-  document.querySelectorAll('.block, .cv-section').forEach(el => blockObserver.observe(el));
+    function updateInView() {
+      const mid = window.innerHeight / 2;
+      sections.forEach(el => {
+        const r = el.getBoundingClientRect();
+        el.classList.toggle('in-view', r.top <= mid && r.bottom >= mid);
+      });
+      ticking = false;
+    }
+
+    ['scroll', 'resize'].forEach(ev =>
+      window.addEventListener(ev, () => {
+        if (!ticking) { ticking = true; requestAnimationFrame(updateInView); }
+      }, { passive: true })
+    );
+    updateInView();
+  }
 
   // Cat carousel — Ken Burns + filmstrip indicators + click to advance
   const KB = ['kb1', 'kb2', 'kb3', 'kb4'];
