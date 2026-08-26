@@ -272,7 +272,10 @@ ul { list-style: none; }
   color: var(--text-2);
   line-height: 1.65;
   max-width: 580px;
+  transition: color 0.3s ease;
 }
+
+.research-item:hover .research-item-desc { color: var(--text); }
 
 .research-links {
   margin-top: 0.5rem;
