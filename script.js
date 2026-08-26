@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, { threshold: 0.08 });
 
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  document.querySelectorAll('.reveal, .tl-item').forEach(el => observer.observe(el));
 
   // Block highlight: accent border when block is in the center of the viewport
   const blockObserver = new IntersectionObserver((entries) => {
