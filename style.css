@@ -695,6 +695,16 @@ ul { list-style: none; }
 
 .page-header .cv-pdf-actions { margin-top: 1.4rem; }
 
+/* Publications — brighter than plain descriptions, white on hover */
+.cv-pub {
+  color: #b8b4ae;
+  transition: color var(--transition);
+}
+
+.cv-pub strong { color: var(--text); }
+
+.cv-entry:hover .cv-pub { color: var(--text); }
+
 /* Label: content rows (awards, skills, memberships) */
 .cv-kv {
   display: grid;
