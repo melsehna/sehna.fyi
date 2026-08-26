@@ -627,7 +627,10 @@ ul { list-style: none; }
 .article-date {
   font-size: 0.8rem;
   color: var(--text-3);
+  transition: color 0.3s ease;
 }
+
+.article-header:hover .article-date { color: var(--text); }
 
 .article-body {
   max-width: 620px;
