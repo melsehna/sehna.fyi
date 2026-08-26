@@ -677,7 +677,10 @@ ul { list-style: none; }
 .page-subtitle {
   font-size: 1rem;
   color: var(--text-2);
+  transition: color 0.3s ease;
 }
+
+.page-header:hover .page-subtitle { color: var(--text); }
 
 /* ============================================================
    CV
