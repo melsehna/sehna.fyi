@@ -691,7 +691,10 @@ ul { list-style: none; }
   color: var(--text-2);
   line-height: 1.55;
   margin-top: 0.3rem;
+  transition: color var(--transition);
 }
+
+.cv-entry:hover .cv-entry-desc { color: var(--text); }
 
 .page-header .cv-pdf-actions { margin-top: 1.4rem; }
 
