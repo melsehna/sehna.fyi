@@ -834,7 +834,10 @@ ul { list-style: none; }
   font-size: 0.85rem;
   color: var(--text-2);
   margin-top: 0.15rem;
+  transition: color var(--transition);
 }
+
+.tl-item:hover .tl-sub { color: var(--text); }
 
 .tl-points {
   list-style: none;
@@ -848,7 +851,10 @@ ul { list-style: none; }
   color: var(--text-2);
   line-height: 1.55;
   margin-bottom: 0.35rem;
+  transition: color var(--transition);
 }
+
+.tl-item:hover .tl-points li { color: var(--text); }
 
 .tl-points li:last-child { margin-bottom: 0; }
 
