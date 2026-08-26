@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, { rootMargin: '-18% 0px -18% 0px', threshold: 0 });
 
-  document.querySelectorAll('.block').forEach(el => blockObserver.observe(el));
+  document.querySelectorAll('.block, .cv-section').forEach(el => blockObserver.observe(el));
 
   // Cat carousel — Ken Burns + filmstrip indicators + click to advance
   const KB = ['kb1', 'kb2', 'kb3', 'kb4'];

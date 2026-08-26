@@ -650,12 +650,18 @@ ul { list-style: none; }
 }
 
 .cv-section-title {
-  font-size: 0.7rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text);
   margin-bottom: 1.5rem;
+  transition: color 0.3s ease;
+}
+
+.cv-section.in-view .cv-section-title,
+.cv-section:hover .cv-section-title {
+  color: var(--accent);
 }
 
 .cv-entry {
