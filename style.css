@@ -1,9 +1,6 @@
 /* ============================================================
-   Fonts — Graphie via Adobe Fonts
-   Each page <head> needs:
-     <link rel="stylesheet" href="https://use.typekit.net/XXXXXXX.css">
-   Replace XXXXXXX with your kit ID from fonts.adobe.com/web.
-   Include weights 400, 500, 600, 700 (+ italic 400) in the kit.
+   Fonts — Avenir (system font on macOS/iOS, no webfont needed)
+   Falls back to system-ui on other platforms.
    ============================================================ */
 
 /* ============================================================
@@ -34,7 +31,7 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'graphie', system-ui, -apple-system, sans-serif;
+  font-family: 'Avenir Next', 'Avenir', system-ui, -apple-system, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
