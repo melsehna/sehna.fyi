@@ -1,9 +1,6 @@
 /* ============================================================
-   Fonts — Graphie via Adobe Fonts
-   Each page <head> needs:
-     <link rel="stylesheet" href="https://use.typekit.net/XXXXXXX.css">
-   Replace XXXXXXX with your kit ID from fonts.adobe.com/web.
-   Include weights 400, 500, 600, 700 (+ italic 400) in the kit.
+   Fonts — Avenir (system font on macOS/iOS, no webfont needed)
+   Falls back to system-ui on other platforms.
    ============================================================ */
 
 /* ============================================================
@@ -34,7 +31,7 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'graphie', system-ui, -apple-system, sans-serif;
+  font-family: 'Avenir Next', 'Avenir', system-ui, -apple-system, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
@@ -157,6 +154,7 @@ ul { list-style: none; }
   font-weight: 500;
   color: var(--text-2);
   margin-bottom: 1.6rem;
+  transition: color 0.3s ease;
 }
 
 .hero-role .accent { color: var(--accent); }
@@ -167,6 +165,13 @@ ul { list-style: none; }
   line-height: 1.8;
   max-width: 520px;
   margin-bottom: 2rem;
+  transition: color 0.3s ease;
+}
+
+.hero:hover .hero-role,
+.hero:hover .hero-bio,
+.hero:hover .hero-meta a {
+  color: var(--text);
 }
 
 .hero-meta {
@@ -215,12 +220,18 @@ ul { list-style: none; }
 }
 
 .block-label {
-  font-size: 0.82rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-2);
+  color: var(--text);
   margin-bottom: 2rem;
+  transition: color 0.3s ease;
+}
+
+.block.in-view .block-label,
+.block:hover .block-label {
+  color: var(--accent);
 }
 
 /* ============================================================
@@ -261,7 +272,10 @@ ul { list-style: none; }
   color: var(--text-2);
   line-height: 1.65;
   max-width: 580px;
+  transition: color 0.3s ease;
 }
+
+.research-item:hover .research-item-desc { color: var(--text); }
 
 .research-links {
   margin-top: 0.5rem;
@@ -313,7 +327,14 @@ ul { list-style: none; }
   line-height: 1.85;
   max-width: 520px;
   margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
 }
+
+.block:hover .research-prose { color: var(--text); }
+
+.block:hover .view-all { color: var(--text); }
+
+.block:hover .view-all:hover { color: var(--accent); }
 
 /* ============================================================
    CV PDF actions
@@ -378,7 +399,10 @@ ul { list-style: none; }
   color: var(--text-3);
   white-space: nowrap;
   flex-shrink: 0;
+  transition: color 0.3s ease;
 }
+
+.block:hover .note-date { color: var(--text); }
 
 /* ============================================================
    Cats
@@ -459,7 +483,10 @@ ul { list-style: none; }
   font-size: 0.75rem;
   color: var(--text-3);
   margin-top: 0.1rem;
+  transition: color 0.3s ease;
 }
+
+.block:hover .cat-caption .cat-title { color: var(--text); }
 
 /* ============================================================
    Activity section (3D commit skyline)
@@ -483,7 +510,15 @@ ul { list-style: none; }
   margin-top: 0.85rem;
   font-size: 0.86rem;
   color: var(--text-3);
+  transition: color 0.3s ease;
 }
+
+.block:hover .activity-caption,
+.block:hover .activity-caption a {
+  color: var(--text);
+}
+
+.block:hover .activity-caption a:hover { color: var(--accent); }
 
 .activity-caption a {
   color: var(--text-2);
@@ -592,7 +627,10 @@ ul { list-style: none; }
 .article-date {
   font-size: 0.8rem;
   color: var(--text-3);
+  transition: color 0.3s ease;
 }
+
+.article-header:hover .article-date { color: var(--text); }
 
 .article-body {
   max-width: 620px;
@@ -642,7 +680,10 @@ ul { list-style: none; }
 .page-subtitle {
   font-size: 1rem;
   color: var(--text-2);
+  transition: color 0.3s ease;
 }
+
+.page-header:hover .page-subtitle { color: var(--text); }
 
 /* ============================================================
    CV
@@ -653,12 +694,18 @@ ul { list-style: none; }
 }
 
 .cv-section-title {
-  font-size: 0.7rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text);
   margin-bottom: 1.5rem;
+  transition: color 0.3s ease;
+}
+
+.cv-section.in-view .cv-section-title,
+.cv-section:hover .cv-section-title {
+  color: var(--accent);
 }
 
 .cv-entry {
@@ -687,6 +734,196 @@ ul { list-style: none; }
   font-size: 0.85rem;
   color: var(--text-2);
   margin-top: 0.15rem;
+}
+
+.cv-entry-desc {
+  font-size: 0.9rem;
+  color: var(--text-2);
+  line-height: 1.55;
+  margin-top: 0.3rem;
+  transition: color var(--transition);
+}
+
+.cv-entry:hover .cv-entry-desc { color: var(--text); }
+
+.page-header .cv-pdf-actions { margin-top: 1.4rem; }
+
+/* Publications — brighter than plain descriptions, white on hover */
+.cv-pub {
+  color: #b8b4ae;
+  transition: color var(--transition);
+}
+
+.cv-pub strong { color: var(--text); }
+
+.cv-entry:hover .cv-pub { color: var(--text); }
+
+/* Label: content rows (awards, skills, memberships) */
+.cv-kv {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.cv-kv:last-child { margin-bottom: 0; }
+
+.cv-kv-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text);
+  padding-top: 0.05rem;
+}
+
+.cv-kv-body {
+  color: var(--text-2);
+  transition: color var(--transition);
+}
+
+.cv-kv:hover .cv-kv-body { color: var(--text); }
+
+/* ============================================================
+   CV timeline
+   ============================================================ */
+.timeline {
+  position: relative;
+  margin-left: 5px;
+  padding-left: 1.9rem;
+}
+
+/* faint full-length track */
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--border);
+}
+
+.tl-item {
+  position: relative;
+  padding-bottom: 2.4rem;
+}
+
+.tl-item:last-child { padding-bottom: 0.4rem; }
+
+/* dot — pops in when the entry scrolls into view */
+.tl-item::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: calc(-1.9rem - 4px);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  transform: scale(0);
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+}
+
+.tl-item.visible::before { transform: scale(1); }
+
+/* accent segment — draws down toward the next entry */
+.tl-item::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 2px;
+  left: -1.9rem;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: 0.35;
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.7s ease 0.3s;
+}
+
+.tl-item.visible::after { transform: scaleY(1); }
+.tl-item:last-child::after { display: none; }
+
+.tl-body {
+  opacity: 0;
+  transform: translateX(16px);
+  transition: opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s;
+}
+
+.tl-item.visible .tl-body {
+  opacity: 1;
+  transform: none;
+}
+
+.tl-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tl-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.tl-when {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.tl-sub {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  margin-top: 0.15rem;
+  transition: color var(--transition);
+}
+
+.tl-item:hover .tl-sub { color: var(--text); }
+
+.tl-points {
+  list-style: none;
+  margin-top: 0.55rem;
+}
+
+.tl-points li {
+  position: relative;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+  color: var(--text-2);
+  line-height: 1.55;
+  margin-bottom: 0.35rem;
+  transition: color var(--transition);
+}
+
+.tl-item:hover .tl-points li { color: var(--text); }
+
+.tl-points li:last-child { margin-bottom: 0; }
+
+.tl-points li::before {
+  content: "\2023";
+  position: absolute;
+  left: 0;
+  color: var(--text-3);
+}
+
+.tl-points strong { color: var(--text); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-item::before,
+  .tl-item::after,
+  .tl-body,
+  .reveal {
+    transition: none;
+  }
 }
 
 /* ============================================================
@@ -722,6 +959,15 @@ ul { list-style: none; }
     grid-template-columns: 1fr;
     gap: 0.2rem;
   }
+
+  .cv-kv {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .timeline { padding-left: 1.4rem; }
+  .tl-item::before { left: calc(-1.4rem - 4px); }
+  .tl-item::after { left: -1.4rem; }
 
   .article-title { font-size: 1.6rem; }
 
